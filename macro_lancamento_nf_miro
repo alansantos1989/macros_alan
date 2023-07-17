@@ -1,0 +1,745 @@
+Sub SAP()
+'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Script elaborado por: Alan Ferreira em jun/2023 usuario: tho045j e-mail: santos.alanferreira@outlook.com
+'
+'
+
+'
+        If Not IsObject(Applicationx) Then
+           Set SapGuiAuto = GetObject("SAPGUI")
+           Set Applicationx = SapGuiAuto.GetScriptingEngine
+        End If
+        If Not IsObject(Connection) Then
+           Set Connection = Applicationx.Children(0)
+        End If
+        If Not IsObject(session) Then
+           Set session = Connection.Children(0)
+        End If
+        If IsObject(WScript) Then
+           WScript.ConnectObject session, "on"
+           WScript.ConnectObject Applicationx, "on"
+        End If
+    
+    'conferir se a planilha arquivo XML não esta com as colunas alteradas
+    If Cells(1, 32).Value <> "EMIT-CNPJ" Or Cells(1, 452).Value <> "ICMSTOT-V_ICMS" Or Cells(1, 20).Value <> "IDE-C_DV" Or Cells(1, 12).Value <> "IDE-N_NF" Or Cells(1, 11).Value <> "IDE-SERIE" Or Cells(1, 549).Value <> "DHEMI_XML" Or Cells(1, 467).Value <> "ICMSTOT-V_IPI" Or Cells(1, 8).Value <> "IDE-C_NF" Or Cells(1, 472).Value <> "ICMSTOT-V_NF" Or Cells(1, 226).Value <> "DET_PROD-V_PROD" Or Cells(1, 19).Value <> "IDE-TP_EMIS" Then
+        MsgBox "Arquivo XML Alterado"
+    End If
+    
+    
+    Dim linha As Integer
+    Dim planilha As String
+    'contador da planilha
+    planilha = Range("A1000000").End(xlUp).Offset(0, 0).Row
+    'contador de linhas
+    linha = 2
+        
+line1:
+
+    Do While linha < planilha + 1
+    
+    
+    'VER SE NOTA É OU NÃO CONSIGNADA
+    Dim ultimaLinha As Long
+    Dim i As Long
+    Dim cfop As String
+    Dim nota As String
+    Dim item As String
+    Dim resultado As String
+    
+    ultimaLinha = linha + Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value) ' Obtém a última linha referente ao ultimo item da nota na coluna B
+    
+    resultado = "" ' Inicializa a variável resultado
+    
+    ' Percorre as linhas da coluna L
+    For i = linha To ultimaLinha
+        nota = Cells(linha, 12).Value ' Obtém o valor da célula na coluna NUMERO DA NOTA
+        cfop = Cells(i, 222).Value ' Obtém o valor da célula na coluna NUMERO DO CFOP
+        item = Cells(i, 204).Value ' Obtém o valor da célula na coluna NUMERO DO ITEM
+        
+        ' Verifica se o CFOP é 5902
+        If cfop = "5902" Then
+            resultado = "consignada" ' Atualiza o resultado para "consignada" CASO CFOP SEJA 5902
+            Exit For
+        End If
+    Next i
+    
+    i = linha
+    
+
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_TOTAL/ssubHEADER_SCREEN:SAPLFDCB:0010/ctxtINVFO-BLDAT").Text = Mid(Cells(linha, 549).Value, 9, 2) & Mid(Cells(linha, 549).Value, 6, 2) & Left(Cells(linha, 549).Value, 4)
+
+        If session.findById("wnd[0]/sbar").Text = "Data de documento e data de lançamento em exercícios diferentes" Then
+            session.findById("wnd[0]").sendVKey 0
+        End If
+
+        
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_TOTAL/ssubHEADER_SCREEN:SAPLFDCB:0010/txtINVFO-XBLNR").Text = Cells(linha, 12).Value & "-" & Cells(linha, 11).Value
+        
+        
+        'vereficar....(lançamento valor da nf caso seja consignada ou venda)
+        If resultado = "consignada" Then
+        
+            Dim linhaconsig As Integer
+            Dim stotal As Double
+            Dim s1 As Double
+            Dim s2 As Double
+            
+            linhaconsig = linha
+            s1 = linha
+            stotal = 0
+            s2 = Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value) + linha
+            Do While s1 < s2
+            If Cells(s1, 222).Value <> "5902" Then
+            stotal = stotal + Cells(s1, 226).Value
+            End If
+            s1 = s1 + 1
+            Loop
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_TOTAL/ssubHEADER_SCREEN:SAPLFDCB:0010/txtINVFO-WRBTR").Text = stotal
+        Else
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_TOTAL/ssubHEADER_SCREEN:SAPLFDCB:0010/txtINVFO-WRBTR").Text = Cells(linha, 472).Value
+        End If
+        
+        'entrada fornecedor e numero da nota lancamento
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/subITEMS:SAPLMR1M:6010/tabsITEMTAB/tabpITEMS_PO/ssubTABS:SAPLMR1M:6020/subREFERENZBELEG:SAPLMR1M:6212/ctxtRM08M-LFSNR").SetFocus
+        session.findById("wnd[0]").sendVKey 4 '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Script elaborado por: Alan Ferreira em jun/2023 usuario: tho045j e-mail: santos.alanferreira@outlook.com
+        'codigo 33000 do fornecedor
+        session.findById("wnd[0]/usr/ctxtSO_LIFNR-LOW").Text = Application.WorksheetFunction.VLookup(Cells(linha, 32).Value, Sheet3.Range("C1:F50000"), 4, False)
+        session.findById("wnd[0]/usr/ctxtPA_BUKRS").Text = "0500"
+        session.findById("wnd[0]/usr/txtPA_XBLNR").Text = Cells(linha, 12).Value & "-" & Cells(linha, 11).Value
+        session.findById("wnd[0]/usr/txtPA_XBLNR").SetFocus
+        session.findById("wnd[0]/usr/txtPA_XBLNR").caretPosition = 16
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/tbar[1]/btn[8]").press
+        
+        
+                If session.findById("wnd[0]/sbar").Text = "Nenhum valor para esta seleção" Then
+        session.findById("wnd[0]/usr/ctxtSO_LIFNR-LOW").Text = Application.WorksheetFunction.VLookup(Cells(linha, 32).Value, Sheet3.Range("C1:F50000"), 4, False)
+        session.findById("wnd[0]/usr/ctxtPA_BUKRS").Text = "0500"
+                Dim nnota As Double
+        nnota = Cells(linha, 12).Value
+        session.findById("wnd[0]/usr/txtPA_XBLNR").Text = nnota & "-" & Cells(linha, 11).Value
+                session.findById("wnd[0]/usr/txtPA_XBLNR").SetFocus
+        session.findById("wnd[0]/usr/txtPA_XBLNR").caretPosition = 16
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/tbar[1]/btn[8]").press
+        End If
+        
+                        If session.findById("wnd[0]/sbar").Text = "Nenhum valor para esta seleção" Then
+        session.findById("wnd[0]/usr/ctxtSO_LIFNR-LOW").Text = Application.WorksheetFunction.VLookup(Cells(linha, 32).Value, Sheet3.Range("C1:F50000"), 4, False)
+        session.findById("wnd[0]/usr/ctxtPA_BUKRS").Text = "0500"
+        '9000
+        session.findById("wnd[0]/usr/txtPA_XBLNR").Text = Cells(linha, 12).Value & "-" & Cells(linha, 11).Value & "    -"
+                session.findById("wnd[0]/usr/txtPA_XBLNR").SetFocus
+        session.findById("wnd[0]/usr/txtPA_XBLNR").caretPosition = 16
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/tbar[1]/btn[8]").press
+        End If
+        
+                                If session.findById("wnd[0]/sbar").Text = "Nenhum valor para esta seleção" Then
+        session.findById("wnd[0]/usr/ctxtSO_LIFNR-LOW").Text = Application.WorksheetFunction.VLookup(Cells(linha, 32).Value, Sheet3.Range("C1:F50000"), 4, False)
+        session.findById("wnd[0]/usr/ctxtPA_BUKRS").Text = "0500"
+        '9000
+        session.findById("wnd[0]/usr/txtPA_XBLNR").Text = Cells(linha, 12).Value
+                session.findById("wnd[0]/usr/txtPA_XBLNR").SetFocus
+        session.findById("wnd[0]/usr/txtPA_XBLNR").caretPosition = 16
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/tbar[1]/btn[8]").press
+        End If
+        
+        If session.findById("wnd[0]/sbar").Text = "Nenhum valor para esta seleção" Then
+        session.findById("wnd[0]/usr/ctxtSO_LIFNR-LOW").Text = Application.WorksheetFunction.VLookup(Cells(linha, 32).Value, Sheet3.Range("C1:F50000"), 4, False)
+        session.findById("wnd[0]/usr/ctxtPA_BUKRS").Text = "0500"
+        nnota = Cells(linha, 12).Value
+        session.findById("wnd[0]/usr/txtPA_XBLNR").Text = nnota
+                session.findById("wnd[0]/usr/txtPA_XBLNR").SetFocus
+        session.findById("wnd[0]/usr/txtPA_XBLNR").caretPosition = 16
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/tbar[1]/btn[8]").press
+        End If
+        
+        If session.findById("wnd[0]/sbar").Text = "Nenhum valor para esta seleção" Then
+        session.findById("wnd[0]/usr/ctxtSO_LIFNR-LOW").Text = Application.WorksheetFunction.VLookup(Cells(linha, 32).Value, Sheet3.Range("C1:F50000"), 4, False)
+        session.findById("wnd[0]/usr/ctxtPA_BUKRS").Text = "0500"
+        '9000
+        session.findById("wnd[0]/usr/txtPA_XBLNR").Text = Cells(linha, 12).Value & "-" & Cells(linha, 11).Value & "  -JI"
+        session.findById("wnd[0]/usr/txtPA_XBLNR").SetFocus
+        session.findById("wnd[0]/usr/txtPA_XBLNR").caretPosition = 16
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/tbar[1]/btn[8]").press
+        End If
+
+         If session.findById("wnd[0]/sbar").Text = "Nenhum valor para esta seleção" Then
+        session.findById("wnd[0]/usr/ctxtSO_LIFNR-LOW").Text = Application.WorksheetFunction.VLookup(Cells(linha, 32).Value, Sheet3.Range("C1:F50000"), 4, False)
+        session.findById("wnd[0]/usr/ctxtPA_BUKRS").Text = "0500"
+        '9000
+        session.findById("wnd[0]/usr/txtPA_XBLNR").Text = Cells(linha, 12).Value & "-" & Cells(linha, 11).Value & " -JIT"
+        session.findById("wnd[0]/usr/txtPA_XBLNR").SetFocus
+        session.findById("wnd[0]/usr/txtPA_XBLNR").caretPosition = 16
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/tbar[1]/btn[8]").press
+        End If
+        
+        
+        
+        'vereficar....(erro numero da nota ou codigo 33 fornecedor)
+        If session.findById("wnd[0]/sbar").Text = "Nenhum valor para esta seleção" Then
+            vtroubleshooting = "erro numero da nota ou codigo 33 fornecedor"
+            GoTo troubleshooting
+        End If
+
+
+        session.findById("wnd[0]/usr/sub/1[0,0]/sub/1/2[0,0]/sub/1/2/3[0,4]/chk[1,4]").Selected = True
+        session.findById("wnd[0]/tbar[1]/btn[9]").press
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI").Select
+        
+        'vereficar....(nota em branco)
+        If Left(session.findById("wnd[0]/sbar").Text, 60) = "Verificar se fatura já foi registrada sob documento contábil" Then
+            vtroubleshooting = "Branco"
+troubleshooting:
+            session.findById("wnd[0]/tbar[0]/okcd").Text = "/nmiro"
+            session.findById("wnd[0]").sendVKey 0
+            Cells(linha + Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value) - 1, 550).Value = vtroubleshooting
+            linha = linha + Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value)
+            GoTo line1
+
+        End If
+            
+        'erro data encontrase no passado
+        If Left(session.findById("wnd[0]/sbar").Text, 18) = "Vencimento líquido" Then
+        session.findById("wnd[0]").sendVKey 0
+        End If
+                
+        'teste de bloqueio por usuario
+        If Left(session.findById("wnd[0]/sbar").Text, 27) = "Usuário já está processando" Then
+            vtroubleshooting = "bloqueado por usuario"
+            GoTo troubleshooting
+        End If
+        
+        If Left(session.findById("wnd[0]/sbar").Text, 60) = "Verificar se fatura já foi registrada sob documento contábil" Then
+            vtroubleshooting = "Branco"
+            GoTo troubleshooting
+        End If
+    
+        If Left(session.findById("wnd[0]/sbar").Text, 39) = "Indicar data base do prazo de pagamento" Then
+            vtroubleshooting = "data base"
+            GoTo troubleshooting
+        End If
+        
+
+        
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI/ssubHEADER_SCREEN:SAPLFDCB:0150/ctxtINVFO-J_1BNFTYPE").Text = "h1"
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI/ssubHEADER_SCREEN:SAPLFDCB:0150/subCUSTSCR1:SAPLXM08:0400/txtGV_CNPJ_EMISS").Text = Cells(linha, 32).Value
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI/ssubHEADER_SCREEN:SAPLFDCB:0150/subCUSTSCR1:SAPLXM08:0400/btnBT_NFVW").press '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Script elaborado por: Alan Ferreira em jun/2023 usuario: tho045j e-mail: santos.alanferreira@outlook.com
+               
+        If session.findById("wnd[0]/sbar").Text = "Local de negócio 0500  não encontrado na estrutura do empreendimento" Then
+            vtroubleshooting = "branco"
+            GoTo troubleshooting
+        End If
+               
+        If session.findById("wnd[0]/sbar").Text = "Referência para NF na ficha de registro para pedido ou material" Then
+            vtroubleshooting = "Bloqueio?"
+            GoTo troubleshooting
+        End If
+                
+        If session.findById("wnd[0]/sbar").Text = "Favor verificar se o emissor de fatura está correto" Then
+            vtroubleshooting = "CNPJ"
+            GoTo troubleshooting
+        End If
+        
+        'teste Nota fiscal duplicada
+        If Left(session.findById("wnd[0]/sbar").Text, 21) = "Nota fiscal duplicada" Then
+            vtroubleshooting = "Duplicada"
+            GoTo troubleshooting
+        End If
+
+        '________________________________________________________________________________________________________________________________________________________
+        'pausa na contabilização (tempo estipulado em segundos na SHEET3  da planilha)
+        
+        Dim newHour, newMinute, newSecond, waitTime As String
+        newHour = Hour(Now())
+        newMinute = Minute(Now())
+        newSecond = Second(Now()) + Sheet3.Cells(5, 10).Value
+        waitTime = TimeSerial(newHour, newMinute, newSecond)
+        Application.Wait waitTime
+
+
+        '________________________________________________________________________________________________________________________________________________________
+        'inserir valor de cada item
+
+        If resultado = "consignada" Then
+
+            Dim Lvalor1 As Integer
+            Dim ll As Integer
+            Dim l As Integer
+            Dim a As Integer
+            
+            Lvalor1 = linha
+            ll = 0
+            l = 0
+            a = Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value)
+            
+            Do While l < a
+            If Cells(Lvalor1, 222).Value = "5902" Then
+                GoTo linha20
+            End If
+            
+        If Left(session.findById("wnd[0]/sbar").Text, 21) = "Local de negócio 0500" Then
+            vtroubleshooting = "Local de negocio"
+            GoTo troubleshooting
+        End If
+            
+            If session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-PRECO_BRUTO[9," & ll & "]").Text = Cells(Lvalor1, 226).Text = "_____________________" Then
+                vtroubleshooting = "falta item"
+                GoTo troubleshooting
+            Else
+                session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-PRECO_BRUTO[9," & ll & "]").Text = Cells(Lvalor1, 226).Value
+            End If
+                        
+            ll = ll + 1
+            
+linha20:
+            
+            Lvalor1 = Lvalor1 + 1
+            l = l + 1
+            Loop
+
+        Else
+        
+        
+        'fazer sodecia
+        
+        If Cells(linha, 32).Value = "02454348000184" Or Sheet3.Cells(13, 10).Value = "ok" Then
+        
+    Dim linhax As Integer
+    Dim rangeToCheck As Range
+    Dim criteriaRange As Range
+    Dim criteria As Variant
+    Dim result As Integer
+    Dim h As Integer
+    
+
+
+    h = 0
+    linhax = linha
+    
+    Do Until session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-PRECO_BRUTO[9," & h & "]").Text = "_____________________"
+    ' Defina os intervalos e critério conforme necessário
+    Set rangeToCheck = Range(Cells(linhax, 212), Cells(linhax + Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linhax, 12).Value), 212))
+    Set criteriaRange = Range(Cells(linhax, 226), Cells(linhax + Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linhax, 12).Value), 226))
+    criteria = session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-MATERIAL[6," & h & "]").Text
+    
+    ' Chame a função CustomSUMIF para obter o resultado
+    result = CustomSUMIF(rangeToCheck, criteriaRange, criteria)
+    
+    ' Exiba o resultado
+    session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-PRECO_BRUTO[9," & h & "]").Text = result
+    h = h + 1
+    Loop
+        
+        
+
+        Else
+        
+           Dim Litens As Integer
+           Dim Qitens As Integer
+           Dim Lvalor As Integer
+           Dim v10 As String
+           
+           Lvalor = linha
+           Litens = 0
+           Qitens = Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value)
+           
+           
+           Do While Litens < Qitens
+        
+                v10 = session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-PRECO_BRUTO[9," & Litens & "]").Text
+                
+                If v10 = "_____________________" Then
+                    vtroubleshooting = "falta item"
+                    GoTo troubleshooting
+                Else
+                    If Cells(linha, 32).Value = "42956441001850" Or Cells(linha, 32).Value = "33042730013001" Or Cells(linha, 32).Value = "60894730004011" Then
+                            session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-PRECO_BRUTO[9," & Litens & "]").Text = Cells(Lvalor, 334).Value
+                            Lvalor = Lvalor + 1
+                            Litens = Litens + 1
+                    Else
+                            session.findById("wnd[0]/usr/tblSAPLXM08TC_NF/txtGT_NF-PRECO_BRUTO[9," & Litens & "]").Text = Cells(Lvalor, 226).Value
+                            Lvalor = Lvalor + 1
+                            Litens = Litens + 1
+                    End If
+                End If
+        
+            Loop
+            
+         End If
+        End If
+        '________________________________________________________________________________________________________________________________________________________
+        
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]").sendVKey 3
+        
+        'vereficar....(erro 20% e 30%)
+        Dim f30 As String
+        f30 = Sheet3.Cells(4, 10).Value
+        
+        If f30 = "ok" Then
+            If session.findById("wnd[0]/sbar").Text = "Preço alto demais: limite tolerância de 20,00 % será excedido" Then
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY").Select
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY/ssubHEADER_SCREEN:SAPLFDCB:0020/txtINVFO-KIDNO").Text = "00135"
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI").Select
+            GoTo Line8
+            End If
+            If session.findById("wnd[0]/sbar").Text = "Preço baixo demais: limite tolerância de 20,00 % não será atingido" Then
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY").Select
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY/ssubHEADER_SCREEN:SAPLFDCB:0020/txtINVFO-KIDNO").Text = "00136"
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI").Select
+            GoTo Line8
+            End If
+Line8:
+        Else
+            If session.findById("wnd[0]/sbar").Text = "Preço alto demais: limite tolerância de 20,00 % será excedido" Or session.findById("wnd[0]/sbar").Text = "Preço baixo demais: limite tolerância de 20,00 % não será atingido" Then
+                vtroubleshooting = "divergencia 30%"
+                GoTo troubleshooting
+            End If
+        End If
+                       
+        'inserir codigo (CONFORME ESTIPULADO NA ABA SHEET3)
+        
+        If Sheet3.Cells(9, 10).Value = "ok" Then
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY").Select
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY/ssubHEADER_SCREEN:SAPLFDCB:0020/txtINVFO-KIDNO").Text = Sheet3.Cells(10, 10).Value
+            session.findById("wnd[0]").sendVKey 0
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI").Select
+        End If
+                       
+        'inserir codigo de ajuste de saldo 000146
+            If session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text >= "-0,05" And session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text <= "0,05" Then
+                Else
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY").Select
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY/ssubHEADER_SCREEN:SAPLFDCB:0020/txtINVFO-KIDNO").Text = "00146"
+                session.findById("wnd[0]").sendVKey 0
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI").Select
+            End If
+                       
+                       
+                       
+        'vereficar....(CORRIGIR SALDO CASO NÃO ESTEJA ENTRE -0,05 E 0,05)
+        
+        Dim V1 As Double
+        Dim V2 As Double
+        Dim v3 As String
+        Dim v4 As String
+        Dim v5 As Double
+        Dim t As Integer
+        t = 0
+        
+        Do Until session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/subITEMS:SAPLMR1M:6010/tabsITEMTAB/tabpITEMS_PO/ssubTABS:SAPLMR1M:6020/subITEM:SAPLMR1M:6310/tblSAPLMR1MTC_MR1M/txtDRSEG-WRBTR[1," & t & "]").Text <> ""
+        t = t + 1
+        Loop
+        
+
+        V1 = Left(session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text, 4)
+        V2 = session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/subITEMS:SAPLMR1M:6010/tabsITEMTAB/tabpITEMS_PO/ssubTABS:SAPLMR1M:6020/subITEM:SAPLMR1M:6310/tblSAPLMR1MTC_MR1M/txtDRSEG-WRBTR[1," & t & "]").Text
+        v3 = Right(session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text, 1)
+        v5 = session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text
+errfnd0:
+
+        'VALORES LIMITES PARA CORRIGIR ESTIPULADOS NA ABA SHEET3
+        If v5 >= "-" & Sheet3.Cells(6, 10).Value And v5 <= Sheet3.Cells(6, 10).Value Then
+        
+            Do Until v5 >= "-0,05" And v5 <= "0,05"
+            
+            V1 = Left(session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text, 4)
+            V2 = session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/subITEMS:SAPLMR1M:6010/tabsITEMTAB/tabpITEMS_PO/ssubTABS:SAPLMR1M:6020/subITEM:SAPLMR1M:6310/tblSAPLMR1MTC_MR1M/txtDRSEG-WRBTR[1," & t & "]").Text
+            v3 = Right(session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text, 1)
+            v5 = session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text
+            
+                If v3 = "-" Then
+                    v4 = (V2 - V1)
+                    Else
+                    v4 = V2 + V1
+                End If
+       
+            session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/subITEMS:SAPLMR1M:6010/tabsITEMTAB/tabpITEMS_PO/ssubTABS:SAPLMR1M:6020/subITEM:SAPLMR1M:6310/tblSAPLMR1MTC_MR1M/txtDRSEG-WRBTR[1," & t & "]").Text = v4
+            session.findById("wnd[0]").sendVKey 0
+            v5 = session.findById("wnd[0]/usr/txtRM08M-DIFFERENZ").Text
+            
+            Loop
+
+
+        End If
+        
+        V1 = 0
+        V2 = 0
+        v3 = 0
+        v4 = 0
+        v5 = 0
+        
+        
+        session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI/ssubHEADER_SCREEN:SAPLFDCB:0150/subCUSTSCR1:SAPLXM08:0400/btnIMPOSTOS").press
+        
+        
+        'teste notas diferimento, aceitar valor do sap
+
+        If Cells(linha, 32).Value = "01214052000476" Or Cells(linha, 32).Value = "01599556000451" Then
+                session.findById("wnd[1]/usr/txtGV_ICMS_TOTAL_NF").Text = session.findById("wnd[1]/usr/txtGV_ICMS_TOTAL").Text
+                session.findById("wnd[1]/usr/txtGV_IPI_TOTAL_NF").Text = Cells(linha, 467).Value
+                session.findById("wnd[1]/usr/txtGV_IPI_TOTAL_NF").SetFocus
+                session.findById("wnd[1]/usr/txtGV_IPI_TOTAL_NF").caretPosition = 1
+                session.findById("wnd[1]/usr/btnCANCEL").press
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY").Select
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY/ssubHEADER_SCREEN:SAPLFDCB:0020/txtINVFO-KIDNO").Text = "00125/00133"
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY/ssubHEADER_SCREEN:SAPLFDCB:0020/txtINVFO-KIDNO").SetFocus
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_PAY/ssubHEADER_SCREEN:SAPLFDCB:0020/txtINVFO-KIDNO").caretPosition = 11
+                session.findById("wnd[0]").sendVKey 0
+                session.findById("wnd[0]/usr/subHEADER_AND_ITEMS:SAPLMR1M:6005/tabsHEADER/tabpHEADER_FI").Select '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Script elaborado por: Alan Ferreira em jun/2023 usuario: tho045j e-mail: santos.alanferreira@outlook.com
+        Else
+                session.findById("wnd[1]/usr/txtGV_ICMS_TOTAL_NF").Text = Cells(linha, 452).Value
+                session.findById("wnd[1]/usr/txtGV_IPI_TOTAL_NF").Text = Cells(linha, 467).Value
+                session.findById("wnd[1]/usr/txtGV_IPI_TOTAL_NF").SetFocus
+                session.findById("wnd[1]/usr/txtGV_IPI_TOTAL_NF").caretPosition = 1
+                session.findById("wnd[1]/usr/btnCANCEL").press
+        End If
+
+        'Divergencia de imposto
+        If session.findById("wnd[0]/sbar").Text = "Preencher campos obrigatórios!" Then
+            vtroubleshooting = "Imposto"
+            GoTo troubleshooting
+        End If
+        
+        Dim e As Integer
+        e = 2
+        Do While e < 3
+        On Error GoTo 0
+        On Error GoTo -1
+        e = e + 1
+        Loop
+        e = e - 1
+        
+        On Error GoTo prx
+        If session.findById("wnd[1]/usr/txtMESSTXT1").Text = "Favor memorizar o documento para verificação" Then
+            vtroubleshooting = "Imposto"
+            GoTo troubleshooting
+        End If
+        
+prx:
+        session.findById("wnd[0]").sendVKey 21 '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Script elaborado por: Alan Ferreira em jun/2023 usuario: tho045j e-mail: santos.alanferreira@outlook.com
+        session.findById("wnd[0]").sendVKey 0
+
+
+        Dim hh As Integer
+        Dim yy As String
+
+        hh = 0
+        yy = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-CFOP[8," & hh & "]").Text
+            
+            Do Until hh = 24
+            
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-CFOP[8," & hh & "]").Text = "" Then
+                session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-CFOP[8," & hh & "]").Text = "1902/AA"
+            End If
+            hh = hh + 1
+            Loop
+
+        '________________________________________________________________________________________________________________________________________________________
+        'parte consignada
+
+        If resultado = "consignada" Then
+        
+            Dim consig1 As String
+            Dim consig2 As Integer
+            Dim ii As Integer
+            
+            ii = 0
+            consig1 = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-ITMTYP[2," & ii & "]").Text
+            consig2 = linhaconsig
+            a = Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value) + consig2
+            
+            
+            Dim e1 As Double
+            e1 = 0
+            
+            Do Until consig1 = "Z3"
+            
+            
+            ii = ii + 1
+            If ii = 24 Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL").verticalScrollbar.Position = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL").verticalScrollbar.Position + 24
+            ii = 0
+            e1 = e1 + 1
+            If e1 = 4 Then
+            GoTo salto2
+            End If
+            End If
+            'apagar depois
+            Dim u3 As String
+            u3 = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text
+            
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "" Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "00000000"
+            End If
+            consig1 = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-ITMTYP[2," & ii & "]").Text
+            Loop
+            
+            
+            Do While consig2 < a
+            
+            If Cells(consig2, 222).Value <> "5902" Then
+            GoTo linha30
+            End If
+            
+            'teste para ver se falta item consignado
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/txtJ_1BDYLIN-NETWR[7," & ii & "]").Text = "_____________________" Then
+                vtroubleshooting = "falta item consignada"
+                GoTo troubleshooting
+            End If
+
+            'valor total
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/txtJ_1BDYLIN-NETWR[7," & ii & "]").Text = Cells(consig2, 226).Value
+            'quantidade
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/txtJ_1BDYLIN-MENGE[4," & ii & "]").Text = Cells(consig2, 224).Value
+            'unidadde un
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-MEINS[5," & ii & "]").Text = Cells(consig2, 223).Value
+            'valor unitario
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/txtJ_1BDYLIN-NETPR[6," & ii & "]").Text = Cells(consig2, 225).Value
+            'ncm
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = Cells(consig2, 215).Value
+            'flag
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/chkJ_1BDYLIN-STATIT[1," & ii & "]").Selected = False
+            
+            ii = ii + 1
+            If ii = 24 Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL").verticalScrollbar.Position = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL").verticalScrollbar.Position + 24
+            ii = 0
+            End If
+            'apagar depois
+            
+            u3 = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text
+            
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "" Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "00000000"
+            End If
+            
+linha30:
+            
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "" Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "00000000"
+            End If
+            
+            consig2 = consig2 + 1
+            Loop
+            
+            Dim u2 As String
+            u2 = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-ITMTYP[2," & ii & "]").Text
+            
+            Do Until ii = 24
+            ii = ii + 1
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "" Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "00000000"
+            End If
+            Loop
+            
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL").verticalScrollbar.Position = session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL").verticalScrollbar.Position + 24
+            
+            ii = 0
+            Do Until ii = 24
+            ii = ii + 1
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "" Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-NBM[9," & ii & "]").Text = "00000000"
+            End If
+            Loop
+            
+salto2:
+            
+        End If
+        
+        'analisar para preencher cfop em branco na parte consugnada acontece com usiminas
+        
+            ii = 0
+            Do Until ii = 24
+            ii = ii + 1
+            If session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-CFOP[8," & ii & "]").Text = "" Then
+            session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB1/ssubHEADER_TAB:SAPLJ1BB2:2100/tblSAPLJ1BB2ITEM_CONTROL/ctxtJ_1BDYLIN-CFOP[8," & ii & "]").Text = "1902/AA"
+            End If
+            Loop
+        
+        
+        
+        '________________________________________________________________________________________________________________________________________________________
+        
+        session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB8").Select '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Script elaborado por: Alan Ferreira em jun/2023 usuario: tho045j e-mail: santos.alanferreira@outlook.com
+        session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB8/ssubHEADER_TAB:SAPLJ1BB2:2800/subRANDOM_NUMBER:SAPLJ1BB2:2801/ctxtJ_1BNFE_DOCNUM9_DIVIDED-TPEMIS").Text = Cells(linha, 19).Value
+        session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB8/ssubHEADER_TAB:SAPLJ1BB2:2800/subRANDOM_NUMBER:SAPLJ1BB2:2801/txtJ_1BNFE_DOCNUM9_DIVIDED-DOCNUM8").Text = Cells(linha, 8).Value
+        session.findById("wnd[0]/usr/tabsTABSTRIP1/tabpTAB8/ssubHEADER_TAB:SAPLJ1BB2:2800/subRANDOM_NUMBER:SAPLJ1BB2:2801/txtJ_1BNFE_ACTIVE-CDV").Text = Cells(linha, 20).Value
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]").sendVKey 3
+        
+        If Err = 617 Then
+        vtroubleshooting = "erro aleatorio"
+        GoTo troubleshooting
+        End If
+        
+        If Left(session.findById("wnd[0]/sbar").Text, 36) = "Dígito controle inserido manualmente" Then
+            vtroubleshooting = "erro numero aleatorio"
+            GoTo troubleshooting
+        End If
+        
+        session.findById("wnd[0]").sendVKey 11
+
+
+        If session.findById("wnd[0]/sbar").Text = "Doc.faturamento ainda contém mensagens" Then
+        vtroubleshooting = "erro na contabilização"
+        GoTo troubleshooting
+        End If
+        
+        vtroubleshooting = "Contabilizada"
+        Cells(linha + Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value) - 1, 550).Value = vtroubleshooting
+        linha = linha + Application.WorksheetFunction.CountIf(Range("L:L"), Cells(linha, 12).Value)
+    
+    Loop
+
+MsgBox "arquivo finalizado"
+
+
+End Sub
+'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Script elaborado por: Alan Ferreira em jun/2023 usuario: tho045j e-mail: santos.alanferreira@outlook.com
+
+Function CustomSUMIF(rangeToCheck As Range, criteriaRange As Range, criteria As Variant) As Double
+
+    Dim cell As Range
+    Dim sumResult As Double
+    
+    sumResult = 0
+    
+    For Each cell In rangeToCheck
+        If cell.Value = criteria Then
+            ' Verifica se a célula correspondente na range de critérios também atende ao critério
+                sumResult = sumResult + Cells(cell.Row, 226).Value
+        End If
+    Next cell
+    CustomSUMIF = sumResult
+End Function
